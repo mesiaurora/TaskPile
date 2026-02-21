@@ -152,6 +152,13 @@ export default function HomeScreen() {
       (item) => item.name.toLowerCase() === normalizedQuery.toLowerCase(),
     );
 
+  const confirmDelete = (id: string) => {
+    setItems((prev) => {
+      const copy = { ...prev };
+      delete copy[id];
+      return copy;
+    });
+  };
   return (
     <View style={styles.container}>
       <View style={styles.contentWrapper}>
@@ -207,6 +214,7 @@ export default function HomeScreen() {
                   <Pressable
                     key={item.id}
                     onPress={() => toggleNeeded(item.id)}
+                    onLongPress={() => confirmDelete(item.id)}
                     style={({ pressed }) => [
                       styles.bulletItem,
                       pressed && { opacity: 0.6 },
@@ -215,7 +223,9 @@ export default function HomeScreen() {
                     <View style={styles.circleOuter}>
                       {item.needed && <View style={styles.circleInner} />}
                     </View>
-                    <Text style={styles.itemText}>{item.name}</Text>
+                    <Text style={styles.itemText}>
+                      {item.name}: {item.quantity}
+                    </Text>
                   </Pressable>
                 ))}
           </View>
