@@ -1,5 +1,12 @@
 import { useState } from "react";
-import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
+import {
+  Alert,
+  Pressable,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from "react-native";
 import { Item } from "@/data/item";
 
 export default function HomeScreen() {
@@ -74,6 +81,7 @@ export default function HomeScreen() {
   });
   const [query, setQuery] = useState("");
   const [selectedAisle, setSelectedAisle] = useState("misc");
+  const [editingItemId, setEditingItemId] = useState<string | null>(null);
 
   const normalizeInput = (value: string) => value.trim().replace(/\s+/g, " ");
 
@@ -109,6 +117,24 @@ export default function HomeScreen() {
     }
 
     const normalizedLower = normalized.toLowerCase();
+    if (editingItemId) {
+      setItems((prev) => {
+        const current = prev[editingItemId];
+        if (!current) return prev;
+
+        return {
+          ...prev,
+          [editingItemId]: {
+            ...current,
+            name: normalized,
+            aisleId: selectedAisle,
+          },
+        };
+      });
+      setEditingItemId(null);
+      setQuery("");
+      return;
+    }
 
     setItems((prev) => {
       const existing = Object.values(prev).find(
@@ -147,17 +173,40 @@ export default function HomeScreen() {
 
   const normalizedQuery = normalizeInput(query);
   const shouldShowAislePicker =
-    normalizedQuery.length > 0 &&
-    !Object.values(items).some(
-      (item) => item.name.toLowerCase() === normalizedQuery.toLowerCase(),
-    );
+    editingItemId !== null ||
+    (normalizedQuery.length > 0 &&
+      !Object.values(items).some(
+        (item) => item.name.toLowerCase() === normalizedQuery.toLowerCase(),
+      ));
 
-  const confirmDelete = (id: string) => {
+  const deleteItem = (id: string) => {
     setItems((prev) => {
       const copy = { ...prev };
       delete copy[id];
       return copy;
     });
+    if (editingItemId === id) {
+      setEditingItemId(null);
+      setQuery("");
+    }
+  };
+
+  const startEdit = (item: Item) => {
+    setEditingItemId(item.id);
+    setQuery(item.name);
+    setSelectedAisle(item.aisleId);
+  };
+
+  const onItemLongPress = (item: Item) => {
+    Alert.alert(item.name, "Choose an action", [
+      { text: "Edit", onPress: () => startEdit(item) },
+      {
+        text: "Delete",
+        style: "destructive",
+        onPress: () => deleteItem(item.id),
+      },
+      { text: "Cancel", style: "cancel" },
+    ]);
   };
   return (
     <View style={styles.container}>
@@ -165,7 +214,9 @@ export default function HomeScreen() {
         <Text style={styles.title}>Plan Your Shopping</Text>
         <TextInput
           style={styles.searchBar}
-          placeholder="Search or add items..."
+          placeholder={
+            editingItemId ? "Edit item..." : "Search or add items..."
+          }
           value={query}
           onChangeText={setQuery}
           onSubmitEditing={handleItemSubmit}
@@ -214,7 +265,10 @@ export default function HomeScreen() {
                   <Pressable
                     key={item.id}
                     onPress={() => toggleNeeded(item.id)}
-                    onLongPress={() => confirmDelete(item.id)}
+                    onLongPress={() => {
+                      console.log("Long press detected");
+                      onItemLongPress(item);
+                    }}
                     style={({ pressed }) => [
                       styles.bulletItem,
                       pressed && { opacity: 0.6 },
@@ -224,7 +278,8 @@ export default function HomeScreen() {
                       {item.needed && <View style={styles.circleInner} />}
                     </View>
                     <Text style={styles.itemText}>
-                      {item.name}: {item.quantity}
+                      {item.name}{" "}
+                      {item.quantity > 1 ? ": " + item.quantity : ""}
                     </Text>
                   </Pressable>
                 ))}
