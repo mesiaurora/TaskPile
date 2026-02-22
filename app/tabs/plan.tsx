@@ -1,15 +1,13 @@
 import { useEffect, useState } from "react";
 import {
   Alert,
-  KeyboardAvoidingView,
-  Platform,
   Pressable,
-  ScrollView,
   StyleSheet,
   Text,
   TextInput,
   View,
 } from "react-native";
+import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 import { Item } from "@/data/item";
 import { useShopping } from "@/context/ShoppingContext";
 
@@ -189,173 +187,165 @@ export default function HomeScreen() {
   };
 
   return (
-    <KeyboardAvoidingView
+    <KeyboardAwareScrollView
       style={styles.container}
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      contentContainerStyle={styles.containerContent}
+      keyboardShouldPersistTaps="handled"
+      enableOnAndroid
+      extraScrollHeight={24}
     >
-      <ScrollView
-        style={styles.flex}
-        contentContainerStyle={styles.containerContent}
-        keyboardShouldPersistTaps="handled"
-      >
-        <View style={styles.contentWrapper}>
-          <Text style={styles.pageTitle}>PLAN YOUR SHOP</Text>
-          <Text style={styles.title}>Add new Item</Text>
-          <TextInput
-            style={styles.searchBar}
-            placeholder={
-              editingItemId ? "Edit item..." : "Search or add items..."
-            }
-            value={query}
-            onChangeText={setQuery}
-            onSubmitEditing={handleItemSubmit}
-            returnKeyType="done"
-          />
+      <View style={styles.contentWrapper}>
+        <Text style={styles.pageTitle}>PLAN YOUR SHOP</Text>
+        <Text style={styles.title}>Add new Item</Text>
+        <TextInput
+          style={styles.searchBar}
+          placeholder={
+            editingItemId ? "Edit item..." : "Search or add items..."
+          }
+          value={query}
+          onChangeText={setQuery}
+          onSubmitEditing={handleItemSubmit}
+          returnKeyType="done"
+        />
 
-          {shouldShowAislePicker && (
-            <View style={styles.aislePicker}>
-              {aisles.map((aisle) => {
-                const isSelected = selectedAisle === aisle;
-                return (
-                  <Pressable
-                    key={aisle}
-                    onPress={() => setSelectedAisle(aisle)}
+        {shouldShowAislePicker && (
+          <View style={styles.aislePicker}>
+            {aisles.map((aisle) => {
+              const isSelected = selectedAisle === aisle;
+              return (
+                <Pressable
+                  key={aisle}
+                  onPress={() => setSelectedAisle(aisle)}
+                  style={[
+                    styles.aisleChip,
+                    isSelected && styles.aisleChipSelected,
+                  ]}
+                >
+                  <Text
                     style={[
-                      styles.aisleChip,
-                      isSelected && styles.aisleChipSelected,
+                      styles.aisleChipText,
+                      isSelected && styles.aisleChipTextSelected,
                     ]}
                   >
-                    <Text
-                      style={[
-                        styles.aisleChipText,
-                        isSelected && styles.aisleChipTextSelected,
-                      ]}
-                    >
-                      {aisle}
-                    </Text>
-                  </Pressable>
-                );
-              })}
-            </View>
-          )}
-
-          {aisles.map((aisle) => (
-            <View style={styles.aisleContainer} key={aisle}>
-              <Pressable onPress={() => toggleAisle(aisle)}>
-                <View style={styles.headerRow}>
-                  <Text style={styles.aisleHeader}>{aisle.toUpperCase()}</Text>
-                  <Text style={styles.chevron}>
-                    {collapsedByAisle[aisle] ? "▸" : "▾"}
+                    {aisle}
                   </Text>
-                </View>
-              </Pressable>
+                </Pressable>
+              );
+            })}
+          </View>
+        )}
 
-              {!collapsedByAisle[aisle] &&
-                Object.values(items)
-                  .filter((item) => item.aisleId === aisle)
-                  .map((item) => (
-                    <Pressable
-                      key={item.id}
-                      onPress={() => toggleNeeded(item.id)}
-                      onLongPress={() => onItemLongPress(item)}
-                      style={({ pressed }) => [
-                        styles.bulletItem,
-                        pressed && { opacity: 0.6 },
-                      ]}
-                    >
-                      {/* Needed toggle */}
-                      <View style={styles.circleOuter}>
-                        {item.needed && <View style={styles.circleInner} />}
-                      </View>
+        {aisles.map((aisle) => (
+          <View style={styles.aisleContainer} key={aisle}>
+            <Pressable onPress={() => toggleAisle(aisle)}>
+              <View style={styles.headerRow}>
+                <Text style={styles.aisleHeader}>{aisle.toUpperCase()}</Text>
+                <Text style={styles.chevron}>
+                  {collapsedByAisle[aisle] ? "▸" : "▾"}
+                </Text>
+              </View>
+            </Pressable>
 
-                      {/* Item name */}
-                      <Text style={styles.itemText}>{item.name}</Text>
+            {!collapsedByAisle[aisle] &&
+              Object.values(items)
+                .filter((item) => item.aisleId === aisle)
+                .map((item) => (
+                  <Pressable
+                    key={item.id}
+                    onPress={() => toggleNeeded(item.id)}
+                    onLongPress={() => onItemLongPress(item)}
+                    style={({ pressed }) => [
+                      styles.bulletItem,
+                      pressed && { opacity: 0.6 },
+                    ]}
+                  >
+                    {/* Needed toggle */}
+                    <View style={styles.circleOuter}>
+                      {item.needed && <View style={styles.circleInner} />}
+                    </View>
 
-                      {/* Quantity — opt-in stepper */}
-                      {item.needed && (
-                        <View style={styles.stepper}>
-                          {expandedQtyIds[item.id] ? (
-                            <>
-                              <Pressable
-                                onPress={(e) => {
-                                  e.stopPropagation?.();
-                                  changeQuantity(item.id, -1);
-                                }}
-                                hitSlop={8}
-                                style={({ pressed }) => [
-                                  styles.stepperBtn,
-                                  pressed && styles.stepperBtnPressed,
-                                ]}
-                              >
-                                <Text style={styles.stepperBtnText}>−</Text>
-                              </Pressable>
+                    {/* Item name */}
+                    <Text style={styles.itemText}>{item.name}</Text>
 
-                              <Pressable
-                                onPress={(e) => {
-                                  e.stopPropagation?.();
-                                  toggleQtyExpanded(item.id);
-                                }}
-                                hitSlop={8}
-                              >
-                                <Text style={styles.stepperValue}>
-                                  {item.quantity}
-                                </Text>
-                              </Pressable>
+                    {/* Quantity — opt-in stepper */}
+                    {item.needed && (
+                      <View style={styles.stepper}>
+                        {expandedQtyIds[item.id] ? (
+                          <>
+                            <Pressable
+                              onPress={(e) => {
+                                e.stopPropagation?.();
+                                changeQuantity(item.id, -1);
+                              }}
+                              hitSlop={8}
+                              style={({ pressed }) => [
+                                styles.stepperBtn,
+                                pressed && styles.stepperBtnPressed,
+                              ]}
+                            >
+                              <Text style={styles.stepperBtnText}>−</Text>
+                            </Pressable>
 
-                              <Pressable
-                                onPress={(e) => {
-                                  e.stopPropagation?.();
-                                  changeQuantity(item.id, 1);
-                                }}
-                                hitSlop={8}
-                                style={({ pressed }) => [
-                                  styles.stepperBtn,
-                                  pressed && styles.stepperBtnPressed,
-                                ]}
-                              >
-                                <Text style={styles.stepperBtnText}>+</Text>
-                              </Pressable>
-                            </>
-                          ) : (
                             <Pressable
                               onPress={(e) => {
                                 e.stopPropagation?.();
                                 toggleQtyExpanded(item.id);
                               }}
                               hitSlop={8}
-                              style={styles.qtyPill}
                             >
-                              <Text style={styles.qtyPillText}>
-                                {item.quantity > 1
-                                  ? `×${item.quantity}`
-                                  : "qty"}
+                              <Text style={styles.stepperValue}>
+                                {item.quantity}
                               </Text>
                             </Pressable>
-                          )}
-                        </View>
-                      )}
-                    </Pressable>
-                  ))}
-            </View>
-          ))}
 
-          <Text style={styles.title}>Add New Aisle</Text>
-          <TextInput
-            style={styles.searchBar}
-            placeholder="Add new aisle..."
-            onSubmitEditing={(e) => addAisle(e.nativeEvent.text)}
-          />
-        </View>
-      </ScrollView>
-    </KeyboardAvoidingView>
+                            <Pressable
+                              onPress={(e) => {
+                                e.stopPropagation?.();
+                                changeQuantity(item.id, 1);
+                              }}
+                              hitSlop={8}
+                              style={({ pressed }) => [
+                                styles.stepperBtn,
+                                pressed && styles.stepperBtnPressed,
+                              ]}
+                            >
+                              <Text style={styles.stepperBtnText}>+</Text>
+                            </Pressable>
+                          </>
+                        ) : (
+                          <Pressable
+                            onPress={(e) => {
+                              e.stopPropagation?.();
+                              toggleQtyExpanded(item.id);
+                            }}
+                            hitSlop={8}
+                            style={styles.qtyPill}
+                          >
+                            <Text style={styles.qtyPillText}>
+                              {item.quantity > 1 ? `×${item.quantity}` : "qty"}
+                            </Text>
+                          </Pressable>
+                        )}
+                      </View>
+                    )}
+                  </Pressable>
+                ))}
+          </View>
+        ))}
+
+        <Text style={styles.title}>Add New Aisle</Text>
+        <TextInput
+          style={styles.searchBar}
+          placeholder="Add new aisle..."
+          onSubmitEditing={(e) => addAisle(e.nativeEvent.text)}
+        />
+      </View>
+    </KeyboardAwareScrollView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
-  },
-  flex: {
     flex: 1,
   },
   containerContent: {
