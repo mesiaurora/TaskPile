@@ -10,75 +10,12 @@ import {
 import { Item } from "@/data/item";
 
 export default function HomeScreen() {
-  const aisleOrder = [
-    "fridge",
-    "freezer",
-    "cupboard",
-    "household",
-    "pet",
-    "misc",
-  ];
+  const [aisles, setAisles] = useState<string[]>([]);
   const [collapsedByAisle, setCollapsedByAisle] = useState<
     Record<string, boolean>
-  >({
-    fridge: true,
-    freezer: true,
-    cupboard: true,
-    household: true,
-    pet: true,
-    misc: true,
-  });
+  >({});
 
-  const [items, setItems] = useState<Record<string, Item>>({
-    milk: {
-      id: "milk",
-      name: "Milk",
-      quantity: 1,
-      needed: true,
-      aisleId: "fridge",
-      inCart: false,
-    },
-    tofu: {
-      id: "tofu",
-      name: "Tofu",
-      quantity: 0,
-      needed: true,
-      aisleId: "fridge",
-      inCart: false,
-    },
-    bread: {
-      id: "bread",
-      name: "Bread",
-      quantity: 0,
-      needed: true,
-      aisleId: "cupboard",
-      inCart: false,
-    },
-    detergent: {
-      id: "detergent",
-      name: "Detergent",
-      quantity: 0,
-      needed: true,
-      aisleId: "household",
-      inCart: false,
-    },
-    berries: {
-      id: "berries",
-      name: "Berries",
-      quantity: 1,
-      needed: true,
-      aisleId: "freezer",
-      inCart: false,
-    },
-    meatballs: {
-      id: "meatballs",
-      name: "Meatballs",
-      quantity: 1,
-      needed: true,
-      aisleId: "pet",
-      inCart: false,
-    },
-  });
+  const [items, setItems] = useState<Record<string, Item>>({});
   const [query, setQuery] = useState("");
   const [selectedAisle, setSelectedAisle] = useState("misc");
   const [editingItemId, setEditingItemId] = useState<string | null>(null);
@@ -171,6 +108,12 @@ export default function HomeScreen() {
     setQuery("");
   };
 
+  const addAisle = (aisle: string) => {
+    const normalized = normalizeInput(aisle);
+    if (!normalized) return;
+    setAisles((prev: string[]) => [...prev, normalized]);
+  };
+
   const normalizedQuery = normalizeInput(query);
   const shouldShowAislePicker =
     editingItemId !== null ||
@@ -211,7 +154,8 @@ export default function HomeScreen() {
   return (
     <View style={styles.container}>
       <View style={styles.contentWrapper}>
-        <Text style={styles.title}>Plan Your Shopping</Text>
+        <Text style={styles.pageTitle}>PLAN YOUR SHOP</Text>
+        <Text style={styles.title}>Add new Item</Text>
         <TextInput
           style={styles.searchBar}
           placeholder={
@@ -224,7 +168,7 @@ export default function HomeScreen() {
         />
         {shouldShowAislePicker && (
           <View style={styles.aislePicker}>
-            {aisleOrder.map((aisle) => {
+            {aisles.map((aisle) => {
               const isSelected = selectedAisle === aisle;
               return (
                 <Pressable
@@ -248,7 +192,7 @@ export default function HomeScreen() {
             })}
           </View>
         )}
-        {aisleOrder.map((aisle) => (
+        {aisles.map((aisle) => (
           <View style={styles.aisleContainer} key={aisle}>
             <Pressable onPress={() => toggleAisle(aisle)}>
               <View style={styles.headerRow}>
@@ -285,6 +229,12 @@ export default function HomeScreen() {
                 ))}
           </View>
         ))}
+        <Text style={styles.title}>Add New Aisle</Text>
+        <TextInput
+          style={styles.searchBar}
+          placeholder="Add new aisle..."
+          onSubmitEditing={(e) => addAisle(e.nativeEvent.text)}
+        />
       </View>
     </View>
   );
@@ -300,8 +250,9 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 24,
-    fontWeight: "600",
+    // fontWeight: "600",
     marginBottom: 16,
+    marginTop: 24,
   },
   bulletItem: {
     flexDirection: "row",
@@ -384,5 +335,10 @@ const styles = StyleSheet.create({
   },
   aisleChipTextSelected: {
     color: "#fff",
+  },
+  pageTitle: {
+    fontSize: 28,
+    fontWeight: "bold",
+    padding: 8,
   },
 });
