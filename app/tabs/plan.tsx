@@ -1,23 +1,23 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Alert,
   Pressable,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
   View,
 } from "react-native";
 import { Item } from "@/data/item";
+import { useShopping } from "@/context/ShoppingContext";
 
 export default function HomeScreen() {
-  const [aisles, setAisles] = useState<string[]>([]);
+  const { aisles, setAisles, items, setItems } = useShopping();
   const [collapsedByAisle, setCollapsedByAisle] = useState<
     Record<string, boolean>
   >({});
-
-  const [items, setItems] = useState<Record<string, Item>>({});
   const [query, setQuery] = useState("");
-  const [selectedAisle, setSelectedAisle] = useState("misc");
+  const [selectedAisle, setSelectedAisle] = useState("");
   const [editingItemId, setEditingItemId] = useState<string | null>(null);
 
   const normalizeInput = (value: string) => value.trim().replace(/\s+/g, " ");
@@ -54,6 +54,11 @@ export default function HomeScreen() {
     }
 
     const normalizedLower = normalized.toLowerCase();
+    if (!selectedAisle) {
+      Alert.alert("No aisle selected", "Add an aisle first, then pick it.");
+      return;
+    }
+
     if (editingItemId) {
       setItems((prev) => {
         const current = prev[editingItemId];
@@ -111,16 +116,35 @@ export default function HomeScreen() {
   const addAisle = (aisle: string) => {
     const normalized = normalizeInput(aisle);
     if (!normalized) return;
-    setAisles((prev: string[]) => [...prev, normalized]);
+    setAisles((prev: string[]) => {
+      const alreadyExists = prev.some(
+        (existing) => existing.toLowerCase() === normalized.toLowerCase(),
+      );
+      return alreadyExists ? prev : [...prev, normalized];
+    });
   };
+
+  useEffect(() => {
+    if (aisles.length === 0) {
+      if (selectedAisle) {
+        setSelectedAisle("");
+      }
+      return;
+    }
+
+    if (!selectedAisle || !aisles.includes(selectedAisle)) {
+      setSelectedAisle(aisles[0]);
+    }
+  }, [aisles, selectedAisle]);
 
   const normalizedQuery = normalizeInput(query);
   const shouldShowAislePicker =
-    editingItemId !== null ||
-    (normalizedQuery.length > 0 &&
-      !Object.values(items).some(
-        (item) => item.name.toLowerCase() === normalizedQuery.toLowerCase(),
-      ));
+    aisles.length > 0 &&
+    (editingItemId !== null ||
+      (normalizedQuery.length > 0 &&
+        !Object.values(items).some(
+          (item) => item.name.toLowerCase() === normalizedQuery.toLowerCase(),
+        )));
 
   const deleteItem = (id: string) => {
     setItems((prev) => {
@@ -152,7 +176,11 @@ export default function HomeScreen() {
     ]);
   };
   return (
-    <View style={styles.container}>
+    <ScrollView
+      style={styles.container}
+      contentContainerStyle={styles.containerContent}
+      keyboardShouldPersistTaps="handled"
+    >
       <View style={styles.contentWrapper}>
         <Text style={styles.pageTitle}>PLAN YOUR SHOP</Text>
         <Text style={styles.title}>Add new Item</Text>
@@ -209,10 +237,7 @@ export default function HomeScreen() {
                   <Pressable
                     key={item.id}
                     onPress={() => toggleNeeded(item.id)}
-                    onLongPress={() => {
-                      console.log("Long press detected");
-                      onItemLongPress(item);
-                    }}
+                    onLongPress={() => onItemLongPress(item)}
                     style={({ pressed }) => [
                       styles.bulletItem,
                       pressed && { opacity: 0.6 },
@@ -236,17 +261,20 @@ export default function HomeScreen() {
           onSubmitEditing={(e) => addAisle(e.nativeEvent.text)}
         />
       </View>
-    </View>
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  containerContent: {
     alignItems: "center",
     justifyContent: "flex-start",
     paddingTop: 16,
     paddingHorizontal: 16,
+    paddingBottom: 32,
   },
   title: {
     fontSize: 24,
